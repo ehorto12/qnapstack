@@ -12,7 +12,7 @@
 #           - Directories are Heimdall, Hydra, NZBGet, Ombi, Plex, Radarr, Sonarr, Tautulli and Traefik Note: these are case sensitive
 #               - Open Traefik folder and create a folder called acme and open said folder
 #               - Use notepad on desktop to create an empty file named acme.json file ensuring that the standard .txt is deleted
-#               - Create another empty empty file name traefik.log
+#               - Create another empty file named traefik.log
 #               - Upload acme.json into acme folder and right click and select Properties -> Permissions
 #               - Upload traefik.log into root of Traefik folder (no permission change needed
 #               - Now deselect all permissions except Owner Read and Write
@@ -50,8 +50,27 @@
 #  
 # 12. Open Container Station
 #       - Select Create and on the upper right select Create Application 
-#       - Recommend Notepade++ for this Step
-#       - Copy entire contents starting from traefik and below and paste below services ensuring all spacing remains the same    
+#           - Recommend Notepade++ for this Step Next Step
+#       - Copy entire contents starting from traefik below and paste below services ensuring all spacing remains the same
+#       - Assign the container any name you'd like
+#
+# 13. Now click Validate YAML to ensure you have copy and pasted the contents below correctly
+# 
+# 14. Click create and sit back until the stack is created.
+#       - Allow some time, maybe 10 minutes, and verify the acme.json to populate
+#       - Verify via File Station acme.json is now populated and not an empty file
+#       - If staging was good comment out the line mentioned below in Traefik
+#          - Next run will now not use the staging acme and provide real certs
+#       - Delete file and repeat uploading and permission change of file as mentioned in step above
+#
+# 15. Now go into Container Station -> Containers and stop the stack and then remove it
+# 
+# 16. Repeat steps 12 - 13 only differnce is we have now commented out the line below for obtaining Let's Encrypt Certs
+# 
+# 17. Configure all your apps
+#        - Note A: NZBGet must be configured to have the categories sonarr and radarr
+#           - DestDir will just /sonarr and /radarr
+#        - Note B: OMBI needs to have ombi.example.com put in the application URL under Customization
  
 services:
 
@@ -69,7 +88,7 @@ services:
             - "--entrypoints.websecure.address=:443"
             - "--certificatesresolvers.cloudflare.acme.dnschallenge=true"
             - "--certificatesresolvers.cloudflare.acme.dnschallenge.provider=cloudflare"
-            - "--certificatesresolvers.cloudflare.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory" # Uncomment for staging once initial stack is run if traefik log is good and acme.json populated 
+            - "--certificatesresolvers.cloudflare.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory" # Uncommented for staging once initial stack is run if traefik log is good and acme.json populated 
             - "--certificatesresolvers.cloudflare.acme.email=youremail here" # E-Mail Here
             - "--certificatesresolvers.cloudflare.acme.storage=/acme.json"
         ports:
