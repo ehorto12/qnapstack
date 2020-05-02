@@ -74,6 +74,8 @@
 #        - Note A: NZBGet must be configured to have the categories sonarr and radarr
 #           - DestDir will just /sonarr and /radarr
 #        - Note B: OMBI needs to have ombi.example.com put in the application URL under Customization
+#
+# Final Thought:  This setupstores all your connfigs. If you remove your satck and reapply it all apps will be configured already
  
 services:
 
