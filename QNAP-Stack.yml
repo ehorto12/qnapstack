@@ -1,0 +1,229 @@
+########################################### SETUP BEFORE RUNNING STACK####################################################################
+# 
+#####################!!!!!!!!WARNING MAY BREAK APPS YOU INSTALLED THAT UTILIZE THE QNAP WEBSERVER!!!!!!!!!!###############################
+#
+#       This setup will allow the stack to be deleted and composed while maintaineing all configs and data in your share folders
+#
+#                                   Setup Assumes Use of Cloudflare for DNS Name                        
+# 
+# 1. Create the following Share Drive via Control Panel-> Shared Folders - AppData    and   Multimedia
+#    - Assign Read and Write Permissions to folder
+#       - Via filestation in the AppData folder create one directory for each dockerr to store configs
+#           - Directories are Heimdall, Hydra, NZBGet, Ombi, Plex, Radarr, Sonarr, Tautulli and Traefik Note: these are case sensitive
+#               - Open Traefik folder and create a folder called acme and open said folder
+#               - Use notepad on desktop to create an empty file named acme.json file ensuring that the standard .txt is deleted
+#               - Create another empty empty file name traefik.log
+#               - Upload acme.json into acme folder and right click and select Properties -> Permissions
+#               - Upload traefik.log into root of Traefik folder (no permission change needed
+#               - Now deselect all permissions except Owner Read and Write
+#        
+# 2. Create the following Share Drive via Control Panel-> Shared Folders - Multimedia
+#       - Via filestation in the Multimedia folder create directories to store content from NZBGet, Radarr and Sonarr
+#       - Directories are Movies, Television and Downloads: these are case sensitive
+#
+# 3. Install Container Station
+#
+# 4. Create user other than admin via Control Panel -> Users 
+#       - Can be any user name 
+#       - Assign R/W Priviledges to these share folders Container Station, AppData and Mulitmedia
+#
+# 5. Change QNAP default ports from default via Control Panel-> Sysytem -> General Settings -> System Administrator 
+#       - Change the System Port and also Enable HTTPS and change this Port too (I used 8880 and 4443) 
+# 
+# 6. Enable and Change Ports for Webserver via Control Panel-> General Settigs -> Applications -> WebServer
+#       - Enable Webserver if not already
+#       - Change Port number and also Enable HTTPS and change this Port too (I used 9880 and 9443)
+#  
+# 7. Enable SSH via Control Panel Telnet/SSH port should be 22      
+# 
+# 8. Create docker network for stack to utilze via ssh using putty or similiar tool on desktop
+#       - Login in as administrator and command in putty is: docker network create web
+#       - Obtain and note PUID and PGID of created user while here   
+#          - Command is: id (name of created user)
+#
+# 9. On Router port forward 80 to 80 and 443 to 443 to QNAP IP Address
+#
+# 10. Go to Cloudflare under DNS and Set AName for Your Domain Name and a CNAME of ombi pointed to your ANAME
+#       - Go to SSL/TLS and select full
+#
+# 11. Proceed below and replace all mared values with your credentials
+#  
+# 12. Open Container Station
+#       - Select Create and on the upper right select Create Application 
+#       - Recommend Notepade++ for this Step
+#       - Copy entire contents starting from traefik and below and paste below services ensuring all spacing remains the same    
+ 
+services:
+
+ # Reverse Proxy for Ombi
+
+    traefik:
+        image: traefik:latest
+        container_name: traefik
+        command: # CLI arguments
+            #- "--log.level=DEBUG"
+            - "--api.insecure=true"
+            - "--providers.docker=true"
+            - "--providers.docker.exposedbydefault=false"
+            - "--entrypoints.web.address=:80"
+            - "--entrypoints.websecure.address=:443"
+            - "--certificatesresolvers.cloudflare.acme.dnschallenge=true"
+            - "--certificatesresolvers.cloudflare.acme.dnschallenge.provider=cloudflare"
+            - "--certificatesresolvers.cloudflare.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory" # Uncomment for staging once initial stack is run if traefik log is good and acme.json populated 
+            - "--certificatesresolvers.cloudflare.acme.email=youremail here" # E-Mail Here
+            - "--certificatesresolvers.cloudflare.acme.storage=/acme.json"
+        ports:
+            - 80:80
+            - 443:443
+            - 8080:8080
+        volumes:
+            - /share/AppData/Traefik/acme/acme.json:/acme.json
+            - /share/AppData/Traefik/traefik.log:/traefik.log
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+        environment:
+            - CF_API_EMAIL=Your Cloudflare Email Here # Cloudflare E-Mail 
+            - CF_API_KEY=1234567890-API-Token # Cloudflare Glopal API found under My Profile -> API Tokens
+
+# Frontend Homepage for Internal Use Only
+             
+    heimdall:
+        image: linuxserver/heimdall:latest
+        container_name: portal
+        restart: unless-stopped        
+        environment:
+            - PUID=911 #Insert PUID from Step 2 Bullet 2
+            - PGID=911 #Insert PGID from Step 2 Bullet 2       ---------Do these 3 things for all entry belows
+            - TZ=Pacific/Honolulu # Insert your time zone here
+        volumes:
+            - /share/AppData/Heimdall:/config
+        ports:
+            - 32770:80
+            - 32772:443              
+
+# Plex
+
+    plex:
+        image: linuxserver/plex:latest
+        container_name: plex
+        restart: unless-stopped
+        network_mode: host
+        volumes:
+            - /share/AppData/Plex:/config
+            - /share/Multimedia/Television:/tv
+            - /share/Multimedia/Movies:/movies
+        environment:
+            - PUID=0
+            - PGID=0
+            - TZ=Pacific/Honolulu
+            - VERSION=docker
+        ports:
+            - 32400:32400           
+
+    tautulli:
+        image: linuxserver/tautulli:latest
+        container_name: tautulli
+        restart: unless-stopped
+        ports:
+            - 8181:8181         
+        volumes:
+            - /share/AppData/Tautulli/:/config
+            - /share/AppData/Tautulli/tautulli/logs:/logs:ro
+        environment:
+            - PUID:0
+            - PGID:0
+            - TZ:Pacific/Honolulu  
+
+ # Request
+ 
+    ombi:
+        image: linuxserver/ombi:latest
+        container_name: ombi
+        restart: unless-stopped
+        volumes:
+            - /share/AppData/Ombi:/config
+        environment:
+            - PUID=0
+            - PGID=0
+            - TZ=Pacific/Honolulu
+        ports:
+            - 3579:3579
+        labels:
+            - "traefik.enable=true"
+            - "traefik.docker.network=web"
+            - "traefik.http.routers.ombi.entrypoints=websecure"
+            - "traefik.http.routers.ombi.rule=Host(`ombi.example.com`)" # Replace example.com with your domain name from ANAME on CloudFlare 
+            - "traefik.http.routers.ombi.tls.certresolver=cloudflare"
+            - "traefik.http.services.ombi.loadbalancer.server.port=3579"       
+
+# Automation for Movies and TV
+
+    sonarr:
+        image: linuxserver/sonarr:latest
+        container_name: sonarr
+        restart: unless-stopped         
+        volumes:
+            - /etc/localtime:/etc/localtime:ro
+            - /share/AppData/Sonarr:/config
+            - /share/Multimedia/Television:/tv
+            - /share/Multimedia/Downloads/sonarr:/sonarr
+        environment:
+            - PUID=0
+            - PGID=0
+            - TZ=Pacific/Honolulu
+        ports:
+            - 8989:8989           
+
+    radarr:
+        image: linuxserver/radarr:latest
+        container_name: radarr
+        restart: unless-stopped 
+        volumes:
+            - /share/AppData/Radarr:/config
+            - /share/Multimedia/Movies:/movies
+            - /share/Multimedia/Downloads/radarr:/radarr
+            - /etc/localtime:/etc/localtime
+        environment:
+            - PUID=0
+            - PGID=0
+            - TZ=Pacific/Honolulu
+        ports:
+            - 7878:7878        
+
+# Downloaders
+
+    nzbget:
+        image: linuxserver/nzbget:latest
+        container_name: nzbget
+        volumes:
+            - /share/AppData/NZBGet:/config
+            - /share/Multimedia/Downloads:/downloads
+            - /share/Multimedia/Downloads/radarr:/radarr
+            - /share/Multimedia/Downloads/sonarr:/sonarr
+        environment:
+            - PUID=0
+            - PGID=0
+            - TZ=Pacific/Honolulu
+        ports:
+            - 6789:6789          
+        restart: unless-stopped
+
+# Indexers
+
+    hydra2:
+        image: linuxserver/hydra2:latest
+        container_name: hydra2
+        restart: unless-stopped         
+        volumes:
+            - /share/AppData/Hydra:/config
+            - /share/Multimedia/Downloads:/downloads
+        environment:
+            - PUID=0
+            - PGID=0
+            - TZ=Pacific/Honolulu
+        ports:
+            - 5076:5076          
+        restart: unless-stopped
+        
+networks:
+  web:
+    external: true   
