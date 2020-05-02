@@ -74,7 +74,8 @@
  
 services:
 
- # Reverse Proxy for Ombi
+ # Reverse Proxy only utilised in this setup for external SSL access to Ombi all other Apps are local LAN access only
+ # If you choose to dive into Traefik you could configure other apps too
 
     traefik:
         image: traefik:latest
@@ -103,23 +104,23 @@ services:
             - CF_API_EMAIL=Your Cloudflare Email Here # Cloudflare E-Mail 
             - CF_API_KEY=1234567890-API-Token # Cloudflare Glopal API found under My Profile -> API Tokens
 
-# Frontend Homepage for Internal Use Only
+# Frontend Homepage for Internal Use Only.  Nice for having a consolidated landing page for the apps below with useful information
              
     heimdall:
         image: linuxserver/heimdall:latest
         container_name: portal
         restart: unless-stopped        
         environment:
-            - PUID=911 #Insert PUID from Step 2 Bullet 2
-            - PGID=911 #Insert PGID from Step 2 Bullet 2       ---------Do these 3 things for all entry belows
-            - TZ=Pacific/Honolulu # Insert your time zone here
+            - PUID=1000 #Insert PUID from Step 2 Bullet 2
+            - PGID=1000 #Insert PGID from Step 2 Bullet 2       ---------Do these 3 things for these all entry belows
+            - TZ=Pacific/Honolulu # Insert your time zone here. May need to google to ensure you hae it correct
         volumes:
             - /share/AppData/Heimdall:/config
         ports:
             - 32770:80
             - 32772:443              
 
-# Plex
+# Plex and Tautulli for Plex Stats 
 
     plex:
         image: linuxserver/plex:latest
@@ -131,8 +132,8 @@ services:
             - /share/Multimedia/Television:/tv
             - /share/Multimedia/Movies:/movies
         environment:
-            - PUID=0
-            - PGID=0
+            - PUID=1000
+            - PGID=1000
             - TZ=Pacific/Honolulu
             - VERSION=docker
         ports:
@@ -148,11 +149,11 @@ services:
             - /share/AppData/Tautulli/:/config
             - /share/AppData/Tautulli/tautulli/logs:/logs:ro
         environment:
-            - PUID:0
-            - PGID:0
+            - PUID:1000
+            - PGID:1000
             - TZ:Pacific/Honolulu  
 
- # Request
+ # Plex Requests for users of your Plex Server
  
     ombi:
         image: linuxserver/ombi:latest
@@ -161,8 +162,8 @@ services:
         volumes:
             - /share/AppData/Ombi:/config
         environment:
-            - PUID=0
-            - PGID=0
+            - PUID=1000
+            - PGID=1000
             - TZ=Pacific/Honolulu
         ports:
             - 3579:3579
@@ -174,7 +175,7 @@ services:
             - "traefik.http.routers.ombi.tls.certresolver=cloudflare"
             - "traefik.http.services.ombi.loadbalancer.server.port=3579"       
 
-# Automation for Movies and TV
+# Automation for Movie and TV Grabs
 
     sonarr:
         image: linuxserver/sonarr:latest
@@ -186,8 +187,8 @@ services:
             - /share/Multimedia/Television:/tv
             - /share/Multimedia/Downloads/sonarr:/sonarr
         environment:
-            - PUID=0
-            - PGID=0
+            - PUID=1000
+            - PGID=1000
             - TZ=Pacific/Honolulu
         ports:
             - 8989:8989           
@@ -202,13 +203,13 @@ services:
             - /share/Multimedia/Downloads/radarr:/radarr
             - /etc/localtime:/etc/localtime
         environment:
-            - PUID=0
-            - PGID=0
+            - PUID=1000
+            - PGID=1000
             - TZ=Pacific/Honolulu
         ports:
             - 7878:7878        
 
-# Downloaders
+# Downloaders: I only use usenet so if you use torrents you'll need to add a torrent client to the stack 
 
     nzbget:
         image: linuxserver/nzbget:latest
@@ -219,14 +220,14 @@ services:
             - /share/Multimedia/Downloads/radarr:/radarr
             - /share/Multimedia/Downloads/sonarr:/sonarr
         environment:
-            - PUID=0
-            - PGID=0
+            - PUID=1000
+            - PGID=1000
             - TZ=Pacific/Honolulu
         ports:
             - 6789:6789          
         restart: unless-stopped
 
-# Indexers
+# Indexers for consolidating all your indexers into one. If you use torrents you'll also want to add jackett to the stack
 
     hydra2:
         image: linuxserver/hydra2:latest
@@ -236,12 +237,11 @@ services:
             - /share/AppData/Hydra:/config
             - /share/Multimedia/Downloads:/downloads
         environment:
-            - PUID=0
-            - PGID=0
+            - PUID=1000
+            - PGID=1000
             - TZ=Pacific/Honolulu
         ports:
             - 5076:5076          
-        restart: unless-stopped
         
 networks:
   web:
