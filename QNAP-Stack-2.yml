@@ -76,16 +76,7 @@
 #        - Note B: OMBI needs to have ombi.example.com put in the application URL under Customization
 #
 # Final Thought:  This setupstores all your connfigs. If you remove your satck and reapply it all apps will be configured already
-#
-#
-# My Deployment
-# - Transfer this file to ~/AppData/Docker
-# - Opened up an SSH terminal, connect to QNAP
-# - Change the folder to /share/CACHEDEV1_DATA/AppData/Docker
-# - Run command "docker-compose up -d"
-#
-#
-
+ 
 version: "3"
 
 services:
@@ -143,7 +134,7 @@ services:
             - /etc/localtime:/etc/localtime:ro
             - /share/AppData/Sonarr:/config
             - /share/Multimedia/TV Shows:/tv
-            - /share/Multimedia/Downloads/sonarr:/sonarr
+            - /share/Multimedia/Downloads:/downloads
         env_file: environment.env
         ports:
             - 8989:8989           
